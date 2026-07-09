@@ -1467,6 +1467,8 @@ export function useSidebarFilterState(
               ];
 
               setFilterState(newFilters);
+              // Analytics (LFE-10781): keyed metadata/category-score facet apply.
+              emitFilterApplied("sidebar", facet.column, newFilters);
             },
             onReset: () => {
               // Remove all categoryOptions filters for this column
@@ -1549,6 +1551,8 @@ export function useSidebarFilterState(
               ];
 
               setFilterState(newFilters);
+              // Analytics (LFE-10781): keyed numeric-score facet apply.
+              emitFilterApplied("sidebar", facet.column, newFilters);
             },
             onReset: () => {
               // Remove all numberObject filters for this column
@@ -1632,6 +1636,8 @@ export function useSidebarFilterState(
               ];
 
               setFilterState(newFilters);
+              // Analytics (LFE-10781): keyed metadata/string-score facet apply.
+              emitFilterApplied("sidebar", facet.column, newFilters);
             },
             onReset: () => {
               // Remove all stringObject filters for this column
@@ -1936,6 +1942,7 @@ export function useSidebarFilterState(
     removeTextFilter,
     expandedState,
     setFilterState,
+    emitFilterApplied,
     managedEnvironmentColumn,
     managedEnvironmentPolicyConfig.hiddenEnvironments,
   ]);
