@@ -23,15 +23,19 @@ import { KeyboardShortcut } from "@/src/components/ui/keyboard-shortcut";
 import type { SearchBarStore } from "@/src/features/search-bar/store/searchBarStore";
 import { api } from "@/src/utils/api";
 import { cn } from "@/src/utils/tailwind";
+import { usePostHogClientCapture } from "@/src/features/posthog-analytics/usePostHogClientCapture";
 
 export function SearchBarAiPrompt({
   projectId,
+  tableName,
   store,
   dataContext,
   onApply,
   onExit,
 }: {
   projectId: string;
+  /** Table this bar filters — the `tableName` analytics dimension. */
+  tableName: string;
   /** The bar store; its `draft` is read as the live refine context. */
   store: SearchBarStore;
   /** Observed values + metadata keys + result count, so the model maps to the
@@ -42,6 +46,7 @@ export function SearchBarAiPrompt({
   /** Leave AI mode and restore the grammar composer. */
   onExit: () => void;
 }) {
+  const capture = usePostHogClientCapture();
   const [value, setValue] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -91,11 +96,20 @@ export function SearchBarAiPrompt({
     // The sidebar/saved-view selector stay mounted and can change the filters
     // mid-request; the model returns the COMPLETE set based on this snapshot.
     const refine = store.getState().draft.trim();
+    const refineMode = refine.length > 0;
+    // Analytics (LFE-10781): METADATA ONLY — `promptLength` is a CHAR COUNT, the
+    // prompt text itself is never sent. Ask-AI is a v4-only surface (isV4 true).
+    capture("filters:ai_generate_requested", {
+      tableName,
+      refineMode,
+      promptLength: prompt.length,
+      isV4: true,
+    });
     try {
       const result = await generateFilter.mutateAsync({
         projectId,
         prompt,
-        currentQuery: refine.length > 0 ? refine : undefined,
+        currentQuery: refineMode ? refine : undefined,
         dataContext,
       });
       // Cancelled mid-flight (Back clicked while generating): don't apply.
@@ -106,13 +120,31 @@ export function SearchBarAiPrompt({
       // so mergeWithSkipped won't preserve it). Bail and let the user retry
       // against the updated filters instead.
       if (store.getState().draft.trim() !== refine) {
+        capture("filters:ai_generate_failed", {
+          tableName,
+          refineMode,
+          reason: "stale",
+          isV4: true,
+        });
         setError("Filters changed while generating — try again.");
         return;
       }
       if (result.filters.length === 0) {
+        capture("filters:ai_generate_failed", {
+          tableName,
+          refineMode,
+          reason: "empty",
+          isV4: true,
+        });
         setError("Couldn't build filters from that — try rephrasing.");
         return;
       }
+      capture("filters:ai_generate_applied", {
+        tableName,
+        refineMode,
+        generatedFilterCount: result.filters.length,
+        isV4: true,
+      });
       onApply(result.filters as FilterState);
       onExit();
     } catch {
@@ -122,6 +154,12 @@ export function SearchBarAiPrompt({
       // an unhelpful "we have been notified" string anyway. The auth/precondition
       // cases are unreachable behind the cloud + aiFeaturesEnabled gate. Show one
       // generic, actionable message instead.
+      capture("filters:ai_generate_failed", {
+        tableName,
+        refineMode,
+        reason: "error",
+        isV4: true,
+      });
       setError("Couldn't reach the AI service. Please try again.");
     }
   };

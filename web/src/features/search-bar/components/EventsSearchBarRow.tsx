@@ -24,9 +24,11 @@ import { ComposerWithPreview } from "@/src/features/search-bar/components/Compos
 import { SearchBarAiPrompt } from "@/src/features/search-bar/components/SearchBarAiPrompt";
 import { SearchBarStoreProvider } from "@/src/features/search-bar/store/SearchBarStoreProvider";
 import type { SearchBarStore } from "@/src/features/search-bar/store/searchBarStore";
+import type { SearchCommitTrigger } from "@/src/features/search-bar/hooks/useEventsSearchBar";
 
 export function EventsSearchBarRow({
   projectId,
+  tableName,
   store,
   commit,
   observed,
@@ -36,8 +38,10 @@ export function EventsSearchBarRow({
   aiDataContext,
 }: {
   projectId: string;
+  /** Table this bar filters — threaded to AI-prompt analytics (LFE-10781). */
+  tableName: string;
   store: SearchBarStore;
-  commit: () => string | null;
+  commit: (trigger?: SearchCommitTrigger) => string | null;
   observed: ObservedOptions | undefined;
   /** Columns whose lazy fetch terminally errored — value-stage loading settles to
    *  empty (per column) instead of pinning, matching the sidebar's settled-error
@@ -79,6 +83,7 @@ export function EventsSearchBarRow({
       {aiOpen && aiAvailable ? (
         <SearchBarAiPrompt
           projectId={projectId}
+          tableName={tableName}
           store={store}
           dataContext={aiDataContext}
           onApply={onApplyFilters}

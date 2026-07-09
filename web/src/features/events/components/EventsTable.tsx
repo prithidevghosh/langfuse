@@ -437,6 +437,8 @@ export default function ObservationsEventsTable({
       loading: isFilterOptionsPending,
       loadingColumns,
       implicitDefaultConfig: DEFAULT_SIDEBAR_IMPLICIT_ENVIRONMENT_CONFIG,
+      // v4 fast-mode surface — drives `isV4` on filters:* analytics (LFE-10781).
+      isV4: true,
     };
 
     if (peekContext) {
@@ -534,6 +536,7 @@ export default function ObservationsEventsTable({
     applyFilters: searchBarApplyFilters,
   } = useEventsSearchBar({
     projectId,
+    tableName: eventsFilterConfig.tableName,
     enabled: searchBarMode,
     filterState: queryFilter.explicitFilterState,
     searchQuery,
@@ -1621,6 +1624,7 @@ export default function ObservationsEventsTable({
             {searchBarMode && (
               <EventsSearchBarRow
                 projectId={projectId}
+                tableName={eventsFilterConfig.tableName}
                 store={searchBarStore}
                 commit={searchBarCommit}
                 observed={observedOptions}
