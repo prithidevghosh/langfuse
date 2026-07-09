@@ -24,6 +24,9 @@ export type LogViewTreeStyle = "flat" | "indented";
 /** JSON view preference (formatted/pretty vs raw JSON vs advanced JSON beta) */
 export type JsonViewPreference = "pretty" | "json" | "json-beta";
 
+/** Context in which trace is rendered - affects feature availability */
+export type TraceRenderContext = "fullscreen" | "peek" | "annotation";
+
 interface ViewPreferencesContextValue {
   showDuration: boolean;
   setShowDuration: (value: boolean) => void;
@@ -39,6 +42,8 @@ interface ViewPreferencesContextValue {
   setShowGraph: (value: boolean) => void;
   minObservationLevel: ObservationLevelType;
   setMinObservationLevel: (value: ObservationLevelType) => void;
+  /** Context in which trace is rendered (also an analytics dimension) */
+  traceContext: TraceRenderContext;
   /** Whether trace is rendered in peek mode (e.g., table peek views) */
   isPeekMode: boolean;
   /** Whether trace is rendered in annotation mode (annotation queue processing) */
@@ -73,7 +78,7 @@ export function useViewPreferences(): ViewPreferencesContextValue {
 interface ViewPreferencesProviderProps {
   children: ReactNode;
   /** Context in which trace is rendered - affects feature availability */
-  traceContext?: "fullscreen" | "peek" | "annotation";
+  traceContext?: TraceRenderContext;
 }
 
 export function ViewPreferencesProvider({
@@ -137,6 +142,7 @@ export function ViewPreferencesProvider({
       setShowGraph,
       minObservationLevel,
       setMinObservationLevel,
+      traceContext,
       isPeekMode,
       isAnnotationMode,
       logViewMode,
@@ -163,6 +169,7 @@ export function ViewPreferencesProvider({
       setShowGraph,
       minObservationLevel,
       setMinObservationLevel,
+      traceContext,
       isPeekMode,
       isAnnotationMode,
       logViewMode,

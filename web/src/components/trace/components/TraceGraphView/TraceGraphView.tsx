@@ -5,13 +5,26 @@
  * and uses data from GraphDataContext.
  */
 
+import { useCallback } from "react";
 import { TraceGraphView as TraceGraphViewComponent } from "@/src/features/trace-graph-view/components/TraceGraphView";
 import { useTraceGraphData } from "../../contexts/TraceGraphDataContext";
 import { useActiveObservationIds } from "../../contexts/PlayheadContext";
+import { usePostHogClientCapture } from "@/src/features/posthog-analytics/usePostHogClientCapture";
+import { useTraceAnalyticsDimensions } from "../../hooks/useTraceAnalyticsDimensions";
 
 export function TraceGraphView() {
   const { agentGraphData, isLoading } = useTraceGraphData();
   const activeObservationIds = useActiveObservationIds();
+  const capture = usePostHogClientCapture();
+  const analyticsDimensions = useTraceAnalyticsDimensions();
+  // Analytics live here (not in the feature component) so the feature module
+  // stays free of trace-view context dependencies.
+  const handleObservationSelect = useCallback(() => {
+    capture("trace_detail:node_selected", {
+      source: "graph",
+      ...analyticsDimensions,
+    });
+  }, [capture, analyticsDimensions]);
 
   if (isLoading) {
     return (
@@ -29,6 +42,7 @@ export function TraceGraphView() {
     <TraceGraphViewComponent
       agentGraphData={agentGraphData}
       activeObservationIds={activeObservationIds}
+      onObservationSelect={handleObservationSelect}
     />
   );
 }
